@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>عاداتي</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F1F6F4;--card:#fff;--ink:#12312F;--mute:#5D7572;--acc:#1B8A6B;--acc-ink:#fff;--dot:#DCE7E4;--line:#D3E0DD;--gold:#C98A12;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1D1C;--card:#172A28;--ink:#E6F2EF;--mute:#8FAAA6;--acc:#3CC39C;--acc-ink:#062018;--dot:#25403D;--line:#2A4542;--gold:#E9B949}}
+:root[data-theme="dark"]{--bg:#0F1D1C;--card:#172A28;--ink:#E6F2EF;--mute:#8FAAA6;--acc:#3CC39C;--acc-ink:#062018;--dot:#25403D;--line:#2A4542;--gold:#E9B949}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.6 "IBM Plex Sans Arabic",system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif}
+main{max-width:520px;margin:0 auto;padding:20px 16px 40px}
+h1{font-size:26px;margin:4px 0 2px;font-weight:700}
+.sub{color:var(--mute);margin:0 0 18px}
+.tip{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:18px}
+.tip b{display:block;margin-bottom:2px}
+.habit{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.name{font-weight:600;font-size:17px}
+.streak{color:var(--gold);font-weight:600;font-size:14px;white-space:nowrap}
+.week{display:flex;gap:8px;margin-top:12px}
+.day{flex:1;text-align:center;font-size:12px;color:var(--mute)}
+.dot{display:block;width:100%;aspect-ratio:1;max-width:40px;margin:4px auto 0;border-radius:50%;background:var(--dot);border:2px solid transparent;padding:0;cursor:pointer}
+.dot.on{background:var(--acc)}
+.dot.today{border-color:var(--ink)}
+.dot:focus-visible,button:focus-visible,input:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.del{background:none;border:0;color:var(--mute);font:inherit;font-size:13px;cursor:pointer;padding:6px 0 0}
+form{display:flex;gap:8px;margin:18px 0}
+input{flex:1;min-width:0;font:inherit;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.btn{font:inherit;font-weight:600;padding:12px 18px;border-radius:12px;border:0;background:var(--acc);color:var(--acc-ink);cursor:pointer}
+.ghost{background:none;border:1px solid var(--line);color:var(--ink);font-weight:400;padding:8px 14px;font-size:14px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.empty{color:var(--mute);text-align:center;padding:24px 8px}
+.note{color:var(--mute);font-size:13px;min-height:20px}
+</style>
+</head>
+<body>
+<main>
+<h1>عاداتي</h1>
+<p class="sub">اضغط على دائرة اليوم لتسجيل إنجازك. بياناتك تبقى على جهازك فقط.</p>
+<div class="tip" id="tip" aria-live="polite"></div>
+<div id="list"></div>
+<form id="f"><input id="n" maxlength="40" placeholder="عادة جديدة، مثل: المشي 20 دقيقة" aria-label="اسم العادة"><button class="btn">إضافة</button></form>
+<div class="note" id="note"></div>
+<div class="row">
+<button class="btn ghost" id="exp" type="button">نسخ احتياطي</button>
+<button class="btn ghost" id="imp" type="button">استعادة</button>
+</div>
+</main>
+<script>
+var KEY="habits_v1", LIMIT=5, S={habits:[]};
+function load(){try{var r=localStorage.getItem(KEY);if(r)S=JSON.parse(r)}catch(e){}if(!S||!Array.isArray(S.habits))S={habits:[]}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function key(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
+function ago(n){var d=new Date();d.setDate(d.getDate()-n);return d}
+function streak(h){var n=0,i=h.done[key(ago(0))]?0:1;while(h.done[key(ago(i))]){n++;i++}return n}
+function wd(d){return d.toLocaleDateString("ar",{weekday:"short"})}
+function render(){
+var L=document.getElementById("list");L.innerHTML="";
+if(!S.habits.length)L.innerHTML='<div class="empty">لا توجد عادات بعد. أضف أول عادة بالأسفل.</div>';
+S.habits.forEach(function(h){
+var c=document.createElement("div");c.className="habit";
+var s=streak(h);
+c.innerHTML='<div class="top"><span class="name"></span><span class="streak">'+(s?s+' يوم متتالٍ':'')+'</span></div><div class="week"></div>';
+c.querySelector(".name").textContent=h.name;
+var w=c.querySelector(".week");
+for(var i=6;i>=0;i--){var d=ago(i),k=key(d);var b=document.createElement("div");b.className="day";
+b.innerHTML=wd(d)+'<button type="button" class="dot'+(h.done[k]?" on":"")+(i===0?" today":"")+'" aria-pressed="'+(!!h.done[k])+'" aria-label="'+h.name+' - '+wd(d)+'"></button>';
+b.querySelector("button").onclick=(function(k){return function(){if(h.done[k])delete h.done[k];else h.done[k]=1;save();render()}})(k);
+w.appendChild(b)}
+var x=document.createElement("button");x.className="del";x.type="button";x.textContent="حذف العادة";
+x.onclick=function(){if(confirm("حذف «"+h.name+"»؟")){S.habits=S.habits.filter(function(z){return z!==h});save();render()}};
+c.appendChild(x);L.appendChild(c)});
+tip()}
+function tip(){
+var T=document.getElementById("tip");
+if(!S.habits.length){T.innerHTML="<b>ملخصك الذكي</b>سيظهر هنا بعد أن تسجّل أول أيامك.";return}
+var tot=0,possible=S.habits.length*7,best=null,weak=null,dayCount=[0,0,0,0,0,0,0],dn=[];
+S.habits.forEach(function(h){var c=0;for(var i=0;i<7;i++){var d=ago(i);if(h.done[key(d)]){c++;dayCount[d.getDay()]++}}
+h.c=c;tot+=c;if(!best||c>best.c)best=h;if(!weak||c<weak.c)weak=h});
+var pct=Math.round(tot/possible*100),msg;
+if(tot===0)msg="أسبوع جديد، ابدأ اليوم بعادة واحدة صغيرة.";
+else if(pct>=80)msg="أداء ممتاز! التزمت بـ"+pct+"% من عاداتك هذا الأسبوع. حافظ على الإيقاع.";
+else if(pct>=50)msg="أسبوع جيد بنسبة "+pct+"%. عادة «"+weak.name+"» تحتاج اهتماماً أكبر، جرّب ربطها بعادة تلتزم بها.";
+else msg="نسبة التزامك "+pct+"%. لا بأس، قلّل عدد العادات وركّز على «"+best.name+"» أولاً.";
+var mx=Math.max.apply(null,dayCount),bd="";
+if(mx>0){var idx=dayCount.indexOf(mx),d=new Date();d.setDate(d.getDate()+((idx-d.getDay()+7)%7));bd=" أفضل أيامك: "+d.toLocaleDateString("ar",{weekday:"long"})+".";}
+T.innerHTML="<b>ملخصك الذكي</b>"+msg+bd}
+document.getElementById("f").onsubmit=function(e){e.preventDefault();
+var i=document.getElementById("n"),v=i.value.trim(),N=document.getElementById("note");
+if(!v)return;
+if(S.habits.length>=LIMIT){N.textContent="النسخة المجانية تدعم "+LIMIT+" عادات. الترقية لعادات غير محدودة قريباً.";return}
+N.textContent="";S.habits.push({id:Date.now(),name:v,done:{}});i.value="";save();render()};
+document.getElementById("exp").onclick=function(){var t=JSON.stringify(S),N=document.getElementById("note");
+if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(function(){N.textContent="تم نسخ بياناتك. الصقها في ملاحظة لحفظها."},function(){N.textContent="تعذّر النسخ."})}else N.textContent="النسخ غير مدعوم في هذا المتصفح."};
+document.getElementById("imp").onclick=function(){var t=prompt("الصق النسخة الاحتياطية هنا");if(!t)return;
+try{var o=JSON.parse(t);if(o&&Array.isArray(o.habits)){S=o;save();render()}else throw 0}catch(e){document.getElementById("note").textContent="النص غير صالح."}};
+load();render();
+</script>
+</body>
+</html>
